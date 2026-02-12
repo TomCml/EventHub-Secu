@@ -1,0 +1,948 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "EventHub API",
+        "description": "API de gestion d'événements",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:3000/api",
+            "description": "Serveur de développement"
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        },
+        "schemas": {
+            "User": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "username": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "otp_enable": {
+                        "type": "integer",
+                        "description": "0 = 2FA désactivé, 1 = 2FA activé",
+                        "example": 0
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "Event": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "startDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "venueId": {
+                        "type": "string"
+                    },
+                    "capacity": {
+                        "type": "integer"
+                    },
+                    "price": {
+                        "type": "number"
+                    },
+                    "organizerId": {
+                        "type": "string"
+                    },
+                    "categoryId": {
+                        "type": "string"
+                    },
+                    "imageUrl": {
+                        "type": "string"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "ApiResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "data": {
+                        "type": "object"
+                    },
+                    "error": {
+                        "type": "object",
+                        "properties": {
+                            "message": {
+                                "type": "string"
+                            },
+                            "code": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "paths": {
+        "/users/register": {
+            "post": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Inscription d'un nouvel utilisateur",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "username",
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "username": {
+                                        "type": "string",
+                                        "example": "johndoe"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "minLength": 6,
+                                        "example": "password123"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Utilisateur créé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "user": {
+                                                    "$ref": "#/components/schemas/User"
+                                                },
+                                                "token": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Données invalides"
+                    }
+                }
+            }
+        },
+        "/users/login": {
+            "post": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Connexion d'un utilisateur",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "test@test.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Connexion réussie (ou OTP requis si 2FA activé)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "type": "object",
+                                            "description": "Connexion sans 2FA",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "user": {
+                                                            "$ref": "#/components/schemas/User"
+                                                        },
+                                                        "token": {
+                                                            "type": "string"
+                                                        },
+                                                        "otpRequired": {
+                                                            "type": "boolean",
+                                                            "example": false
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "object",
+                                            "description": "2FA activé — OTP requis",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "otpRequired": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        },
+                                                        "tempToken": {
+                                                            "type": "string",
+                                                            "description": "JWT temporaire (5 min) pour la vérification OTP"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Email ou mot de passe invalide"
+                    }
+                }
+            }
+        },
+        "/users/profile": {
+            "get": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Récupérer le profil de l'utilisateur connecté",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Profil récupéré (inclut le statut 2FA)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "username": {
+                                                    "type": "string"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email"
+                                                },
+                                                "otp_enable": {
+                                                    "type": "integer",
+                                                    "example": 0
+                                                },
+                                                "createdAt": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                }
+            }
+        },
+        "/events": {
+            "get": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Récupérer tous les événements",
+                "responses": {
+                    "200": {
+                        "description": "Liste des événements",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Event"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Créer un nouvel événement",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "title",
+                                    "startDate",
+                                    "venueId",
+                                    "capacity",
+                                    "organizerId",
+                                    "categoryId"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Concert de Jazz"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Un super concert de jazz"
+                                    },
+                                    "startDate": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2026-02-01T20:00:00Z"
+                                    },
+                                    "venueId": {
+                                        "type": "string",
+                                        "example": "venue-123"
+                                    },
+                                    "capacity": {
+                                        "type": "integer",
+                                        "example": 100
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "example": 25.50
+                                    },
+                                    "organizerId": {
+                                        "type": "string",
+                                        "example": "user-123"
+                                    },
+                                    "categoryId": {
+                                        "type": "string",
+                                        "example": "cat-music"
+                                    },
+                                    "imageUrl": {
+                                        "type": "string",
+                                        "example": "https://example.com/image.jpg"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Événement créé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Event"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                }
+            }
+        },
+        "/events/{id}": {
+            "get": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Récupérer un événement par son ID",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Événement trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Event"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Événement non trouvé"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Mettre à jour un événement",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "startDate": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "venueId": {
+                                        "type": "string"
+                                    },
+                                    "capacity": {
+                                        "type": "integer"
+                                    },
+                                    "price": {
+                                        "type": "number"
+                                    },
+                                    "categoryId": {
+                                        "type": "string"
+                                    },
+                                    "imageUrl": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Événement mis à jour",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Event"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Événement non trouvé"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Supprimer un événement",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Événement supprimé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Événement non trouvé"
+                    }
+                }
+            }
+        },
+        "/otp/generate": {
+            "post": {
+                "tags": [
+                    "OTP / 2FA"
+                ],
+                "summary": "Générer un secret OTP et QR code",
+                "description": "Génère un secret TOTP pour l'utilisateur connecté et retourne un QR code à scanner avec une app authenticator.",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Secret OTP généré",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "qrCodeDataUrl": {
+                                                    "type": "string",
+                                                    "description": "Data URL du QR code (base64 PNG)"
+                                                },
+                                                "manualKey": {
+                                                    "type": "string",
+                                                    "description": "Clé secrète à entrer manuellement"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                }
+            }
+        },
+        "/otp/verify-activation": {
+            "post": {
+                "tags": [
+                    "OTP / 2FA"
+                ],
+                "summary": "Vérifier OTP et activer le 2FA",
+                "description": "Vérifie le code OTP saisi par l'utilisateur, active le 2FA et génère 8 codes de secours. Rate limité : 4 tentatives/minute.",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "otpToken"
+                                ],
+                                "properties": {
+                                    "otpToken": {
+                                        "type": "string",
+                                        "example": "123456",
+                                        "description": "Code OTP à 6 chiffres"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "2FA activé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "backupCodes": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": "8 codes de secours à conserver"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Code OTP invalide"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "429": {
+                        "description": "Trop de tentatives (rate limit)"
+                    }
+                }
+            }
+        },
+        "/otp/verify-login": {
+            "post": {
+                "tags": [
+                    "OTP / 2FA"
+                ],
+                "summary": "Vérifier OTP lors du login",
+                "description": "Vérifie le code OTP après un login avec 2FA activé. Utilise le tempToken reçu lors du login. Rate limité : 4 tentatives/minute.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "tempToken",
+                                    "otpToken"
+                                ],
+                                "properties": {
+                                    "tempToken": {
+                                        "type": "string",
+                                        "description": "Token temporaire reçu lors du login"
+                                    },
+                                    "otpToken": {
+                                        "type": "string",
+                                        "example": "123456",
+                                        "description": "Code OTP à 6 chiffres"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP vérifié — JWT complet retourné",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "token": {
+                                                    "type": "string",
+                                                    "description": "JWT de session complet"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Code OTP ou tempToken invalide"
+                    },
+                    "401": {
+                        "description": "Token expiré"
+                    },
+                    "429": {
+                        "description": "Trop de tentatives (rate limit)"
+                    }
+                }
+            }
+        },
+        "/otp/verify-backup": {
+            "post": {
+                "tags": [
+                    "OTP / 2FA"
+                ],
+                "summary": "Utiliser un code de secours",
+                "description": "Permet de se connecter avec un code de secours si l'app authenticator est indisponible. Verrouille le compte après 5 tentatives consécutives échouées. Rate limité : 4 tentatives/minute.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "tempToken",
+                                    "backupCode"
+                                ],
+                                "properties": {
+                                    "tempToken": {
+                                        "type": "string",
+                                        "description": "Token temporaire reçu lors du login"
+                                    },
+                                    "backupCode": {
+                                        "type": "string",
+                                        "example": "a1b2c3d4",
+                                        "description": "Code de secours"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Code de secours vérifié — JWT complet retourné",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "token": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Code de secours invalide"
+                    },
+                    "401": {
+                        "description": "Token expiré"
+                    },
+                    "403": {
+                        "description": "Compte verrouillé (trop de tentatives)"
+                    },
+                    "429": {
+                        "description": "Trop de tentatives (rate limit)"
+                    }
+                }
+            }
+        },
+        "/otp/disable": {
+            "post": {
+                "tags": [
+                    "OTP / 2FA"
+                ],
+                "summary": "Désactiver le 2FA",
+                "description": "Désactive l'authentification à deux facteurs, supprime le secret OTP et les codes de secours.",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "2FA désactivé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "OTP disabled successfully"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                }
+            }
+        }
+    }
+}

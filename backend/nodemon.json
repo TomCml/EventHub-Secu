@@ -1,0 +1,11 @@
+{
+    "watch": [
+        "api",
+        "application",
+        "domain",
+        "infrastructure",
+        "utility"
+    ],
+    "ext": "ts",
+    "exec": "ts-node api/app.ts"
+}

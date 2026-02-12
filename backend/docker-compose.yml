@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: eventhub_postgres
+    restart: always
+    env_file:
+      - .env.docker
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d eventhub" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    container_name: eventhub_backend
+    restart: always
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env.docker
+
+volumes:
+  pgdata:
