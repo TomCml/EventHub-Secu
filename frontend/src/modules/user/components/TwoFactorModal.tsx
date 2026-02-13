@@ -62,7 +62,7 @@ export const TwoFactorModal: React.FC<TwoFactorModalProps> = ({ open, onClose, m
 
     return (
         <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-            <DialogTitle>Activer l'authentification à deux facteurs (2FA)</DialogTitle>
+            <DialogTitle>{mode === 'deactivate' && !otpActivationResult ? 'Désactiver l\'authentification à deux facteurs (2FA)' : 'Activer l\'authentification à deux facteurs (2FA)'}</DialogTitle>
             <DialogContent>
                 {otpError && (
                     <Alert severity="error" sx={{ mb: 2 }}>{otpError}</Alert>
