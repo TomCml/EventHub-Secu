@@ -32,6 +32,7 @@ export class GenerateOtpSecretUseCase {
             label: user.email,
             secret,
         });
+
         const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl);
 
         return {

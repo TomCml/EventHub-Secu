@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import { UserRepositoryInterface } from '../../../domain/interfaces/UserRepositoryInterface';
 import { IOtpBackupCodeRepository } from '../../../domain/interfaces/OtpBackupCodeRepositoryInterface';
 import { generateSignature } from '../../../utility/password.utility';
@@ -39,13 +40,19 @@ export class VerifyBackupCodeUseCase {
             throw new Error('No backup codes found');
         }
 
-        // Track consecutive failed tests
-        const codes: string[] = JSON.parse(backupCodeEntity.props.codes);
-        const codeIndex = codes.findIndex(
-            (c) => c.toUpperCase() === input.backupCode.toUpperCase()
-        );
+        // Compare submitted code against each stored hash
+        const hashedCodes: string[] = JSON.parse(backupCodeEntity.props.codes);
+        let matchedIndex = -1;
 
-        if (codeIndex === -1) {
+        for (let i = 0; i < hashedCodes.length; i++) {
+            const isMatch = await bcrypt.compare(input.backupCode.toUpperCase(), hashedCodes[i]);
+            if (isMatch) {
+                matchedIndex = i;
+                break;
+            }
+        }
+
+        if (matchedIndex === -1) {
             // Increment consecutive tests counter
             backupCodeEntity.props.nb_consecutive_tests += 1;
             await this.backupCodeRepository.update(backupCodeEntity);
@@ -57,9 +64,9 @@ export class VerifyBackupCodeUseCase {
             throw new Error('Invalid backup code');
         }
 
-        // Remove used code
-        codes.splice(codeIndex, 1);
-        backupCodeEntity.props.codes = JSON.stringify(codes);
+        // Remove used code hash
+        hashedCodes.splice(matchedIndex, 1);
+        backupCodeEntity.props.codes = JSON.stringify(hashedCodes);
         backupCodeEntity.props.nb_code_used += 1;
         backupCodeEntity.props.nb_consecutive_tests = 0; // Reset on success
         await this.backupCodeRepository.update(backupCodeEntity);
@@ -81,7 +88,7 @@ export class VerifyBackupCodeUseCase {
                 createdAt: user.createdAt,
             },
             token,
-            remainingCodes: codes.length,
+            remainingCodes: hashedCodes.length,
         };
     }
 }
